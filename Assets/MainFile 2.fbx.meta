@@ -1,9 +1,29 @@
 fileFormatVersion: 2
-guid: f3f2c775bd0798c499eb4e3c5100996d
+guid: 36c22e295e5c2984cac3576290282f00
 ModelImporter:
   serializedVersion: 24600
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Button
+    second: {fileID: 2100000, guid: 6886d583655c2b7459855a3cefb7dc37, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fabric Dark
+    second: {fileID: 2100000, guid: ec5ca068fb2be474dafeff658a5f4749, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Fabric Light
+    second: {fileID: 2100000, guid: cad6cb7be20aeb844aad4b7b5c74fd74, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: string
+    second: {fileID: 2100000, guid: 6af35fff6ef8d7a40935ca7e08ae0723, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
