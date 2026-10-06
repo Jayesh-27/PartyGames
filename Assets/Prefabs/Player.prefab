@@ -5956,8 +5956,6 @@ MonoBehaviour:
     m_Active: 1
   - m_Rig: {fileID: 684789044240909623}
     m_Active: 1
-  - m_Rig: {fileID: 0}
-    m_Active: 0
   - m_Rig: {fileID: 5520147814846880615}
     m_Active: 1
   - m_Rig: {fileID: 6140626388828799415}
