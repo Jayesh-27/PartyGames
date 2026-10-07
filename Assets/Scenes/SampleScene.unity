@@ -392,6 +392,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &10126422
 GameObject:
   m_ObjectHideFlags: 0
@@ -2857,54 +2866,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EarHeadSway
   head: {fileID: 1491956047}
-  leftRoot:
-    bone: {fileID: 1206162018}
-    defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}
-    forwardOffset: {x: 0, y: 15, z: 0}
-    backwardOffset: {x: -0, y: -15, z: -0}
-    pitchMaxOffset: {x: 20, y: 0, z: 0}
-    pitchMinOffset: {x: -20, y: -0, z: -0}
-    invertPitch: 0
-  leftMiddle:
-    bone: {fileID: 1206162017}
-    defaultRotation: {x: 8.503997, y: 0.3689969, z: 4.960005}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 50, z: 0}
-    pitchMinOffset: {x: -0, y: -50, z: -0}
-    invertPitch: 0
-  leftEnd:
-    bone: {fileID: 1206162015}
-    defaultRotation: {x: 7.405613, y: 359.69403, z: 355.27502}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 50, z: 0}
-    pitchMinOffset: {x: -0, y: -50, z: -0}
-    invertPitch: 0
-  rightRoot:
-    bone: {fileID: 1206162014}
-    defaultRotation: {x: 2.045157, y: 14.219209, z: 267.3969}
-    forwardOffset: {x: 0, y: 30, z: 0}
-    backwardOffset: {x: -0, y: -30, z: -0}
-    pitchMaxOffset: {x: 20, y: 0, z: 0}
-    pitchMinOffset: {x: -20, y: -0, z: -0}
-    invertPitch: 1
-  rightMiddle:
-    bone: {fileID: 1206162013}
-    defaultRotation: {x: 357.42245, y: 359.9435, z: 2.5109756}
-    forwardOffset: {x: 70, y: 0, z: 0}
-    backwardOffset: {x: -70, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 50, z: 0}
-    pitchMinOffset: {x: -0, y: -50, z: -0}
-    invertPitch: 1
-  rightEnd:
-    bone: {fileID: 1206162011}
-    defaultRotation: {x: 3.7265623, y: 0.004461479, z: 0.13708326}
-    forwardOffset: {x: 70, y: 0, z: 0}
-    backwardOffset: {x: -70, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 50, z: 0}
-    pitchMinOffset: {x: -0, y: -50, z: -0}
-    invertPitch: 1
+  leftRoot: {bone: {fileID: 1206162018}, defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}, forwardOffset: {x: 0, y: 15, z: 0}, backwardOffset: {x: -0, y: -15, z: -0}, pitchMaxOffset: {x: 20, y: 0, z: 0}, pitchMinOffset: {x: -20, y: -0, z: -0}, invertPitch: 0}
+  leftMiddle: {bone: {fileID: 1206162017}, defaultRotation: {x: 8.503997, y: 0.3689969, z: 4.960005}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 50, z: 0}, pitchMinOffset: {x: -0, y: -50, z: -0}, invertPitch: 0}
+  leftEnd: {bone: {fileID: 1206162015}, defaultRotation: {x: 7.405613, y: 359.69403, z: 355.27502}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 50, z: 0}, pitchMinOffset: {x: -0, y: -50, z: -0}, invertPitch: 0}
+  rightRoot: {bone: {fileID: 1206162014}, defaultRotation: {x: 2.045157, y: 14.219209, z: 267.3969}, forwardOffset: {x: 0, y: 30, z: 0}, backwardOffset: {x: -0, y: -30, z: -0}, pitchMaxOffset: {x: 20, y: 0, z: 0}, pitchMinOffset: {x: -20, y: -0, z: -0}, invertPitch: 1}
+  rightMiddle: {bone: {fileID: 1206162013}, defaultRotation: {x: 357.42245, y: 359.9435, z: 2.5109756}, forwardOffset: {x: 70, y: 0, z: 0}, backwardOffset: {x: -70, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 50, z: 0}, pitchMinOffset: {x: -0, y: -50, z: -0}, invertPitch: 1}
+  rightEnd: {bone: {fileID: 1206162011}, defaultRotation: {x: 3.7265623, y: 0.004461479, z: 0.13708326}, forwardOffset: {x: 70, y: 0, z: 0}, backwardOffset: {x: -70, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 50, z: 0}, pitchMinOffset: {x: -0, y: -50, z: -0}, invertPitch: 1}
   fullBendSpeed: 180
   deadZone: 10
   pitchFullBendSpeed: 120
@@ -2912,6 +2879,10 @@ MonoBehaviour:
   bendSpeed: 12
   returnSpeed: 3
   temp: {fileID: 1206162019}
+  lastYaw: 0
+  lastPitch: 0
+  yawBend: 0
+  pitchBend: 0
 --- !u!4 &85241665 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 720b98292bcfeab43afc0b612d714ebb, type: 3}
@@ -5823,6 +5794,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &162148357
 GameObject:
   m_ObjectHideFlags: 0
@@ -11077,7 +11057,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80ae083fdd92a7a44bac928ab81c4eb7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  hand: 1
+  poseSource: {fileID: 0}
   ikTarget: {fileID: 1618197911}
   root: {fileID: 334712887}
   mid: {fileID: 507964052}
@@ -11086,8 +11066,6 @@ MonoBehaviour:
   minReach: 0.02
   positionOffset: {x: 0, y: 0, z: 0}
   rotationOffset: {x: 0, y: 0, z: 0}
-  useDebugSource: 1
-  debugSource: {fileID: 1060212477}
 --- !u!114 &303593968
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -22019,7 +21997,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80ae083fdd92a7a44bac928ab81c4eb7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  hand: 1
+  poseSource: {fileID: 0}
   ikTarget: {fileID: 1531462154}
   root: {fileID: 1388220299}
   mid: {fileID: 1018709221}
@@ -22028,8 +22006,6 @@ MonoBehaviour:
   minReach: 0.02
   positionOffset: {x: 0, y: 0, z: 0}
   rotationOffset: {x: 0, y: 0, z: 0}
-  useDebugSource: 1
-  debugSource: {fileID: 1060212477}
 --- !u!114 &602187293
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -24235,6 +24211,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &698064267
 GameObject:
   m_ObjectHideFlags: 0
@@ -25703,6 +25688,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &737059014
 GameObject:
   m_ObjectHideFlags: 0
@@ -27355,7 +27349,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 80ae083fdd92a7a44bac928ab81c4eb7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  hand: 1
+  poseSource: {fileID: 0}
   ikTarget: {fileID: 9822339}
   root: {fileID: 2071141774}
   mid: {fileID: 844988675}
@@ -27364,8 +27358,6 @@ MonoBehaviour:
   minReach: 0.02
   positionOffset: {x: 0, y: 0, z: 0}
   rotationOffset: {x: 0, y: 0, z: 0}
-  useDebugSource: 1
-  debugSource: {fileID: 1060212477}
 --- !u!114 &800883883
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36731,54 +36723,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EarHeadSway
   head: {fileID: 1491956047}
-  leftRoot:
-    bone: {fileID: 0}
-    defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}
-    forwardOffset: {x: 0, y: 15, z: 0}
-    backwardOffset: {x: -0, y: -15, z: -0}
-    pitchMaxOffset: {x: 10, y: 0, z: 0}
-    pitchMinOffset: {x: -10, y: -0, z: -0}
-    invertPitch: 0
-  leftMiddle:
-    bone: {fileID: 0}
-    defaultRotation: {x: 8.503997, y: 0.3689969, z: 4.960005}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 15, z: 0}
-    pitchMinOffset: {x: -0, y: -15, z: -0}
-    invertPitch: 0
-  leftEnd:
-    bone: {fileID: 0}
-    defaultRotation: {x: 7.405613, y: 359.69403, z: 355.27502}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 10, z: 0}
-    pitchMinOffset: {x: -0, y: -10, z: -0}
-    invertPitch: 0
-  rightRoot:
-    bone: {fileID: 0}
-    defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}
-    forwardOffset: {x: 0, y: 15, z: 0}
-    backwardOffset: {x: -0, y: -15, z: -0}
-    pitchMaxOffset: {x: 10, y: 0, z: 0}
-    pitchMinOffset: {x: -10, y: -0, z: -0}
-    invertPitch: 0
-  rightMiddle:
-    bone: {fileID: 0}
-    defaultRotation: {x: 357.42245, y: 359.9435, z: 2.5109756}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 15, z: 0}
-    pitchMinOffset: {x: -0, y: -15, z: -0}
-    invertPitch: 0
-  rightEnd:
-    bone: {fileID: 0}
-    defaultRotation: {x: 3.7265623, y: 0.004461479, z: 0.13708326}
-    forwardOffset: {x: 45, y: 0, z: 0}
-    backwardOffset: {x: -45, y: -0, z: -0}
-    pitchMaxOffset: {x: 0, y: 10, z: 0}
-    pitchMinOffset: {x: -0, y: -10, z: -0}
-    invertPitch: 0
+  leftRoot: {bone: {fileID: 0}, defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}, forwardOffset: {x: 0, y: 15, z: 0}, backwardOffset: {x: -0, y: -15, z: -0}, pitchMaxOffset: {x: 10, y: 0, z: 0}, pitchMinOffset: {x: -10, y: -0, z: -0}, invertPitch: 0}
+  leftMiddle: {bone: {fileID: 0}, defaultRotation: {x: 8.503997, y: 0.3689969, z: 4.960005}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 15, z: 0}, pitchMinOffset: {x: -0, y: -15, z: -0}, invertPitch: 0}
+  leftEnd: {bone: {fileID: 0}, defaultRotation: {x: 7.405613, y: 359.69403, z: 355.27502}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 10, z: 0}, pitchMinOffset: {x: -0, y: -10, z: -0}, invertPitch: 0}
+  rightRoot: {bone: {fileID: 0}, defaultRotation: {x: 354.35538, y: 336.544, z: 91.01436}, forwardOffset: {x: 0, y: 15, z: 0}, backwardOffset: {x: -0, y: -15, z: -0}, pitchMaxOffset: {x: 10, y: 0, z: 0}, pitchMinOffset: {x: -10, y: -0, z: -0}, invertPitch: 0}
+  rightMiddle: {bone: {fileID: 0}, defaultRotation: {x: 357.42245, y: 359.9435, z: 2.5109756}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 15, z: 0}, pitchMinOffset: {x: -0, y: -15, z: -0}, invertPitch: 0}
+  rightEnd: {bone: {fileID: 0}, defaultRotation: {x: 3.7265623, y: 0.004461479, z: 0.13708326}, forwardOffset: {x: 45, y: 0, z: 0}, backwardOffset: {x: -45, y: -0, z: -0}, pitchMaxOffset: {x: 0, y: 10, z: 0}, pitchMinOffset: {x: -0, y: -10, z: -0}, invertPitch: 0}
   fullBendSpeed: 180
   deadZone: 10
   pitchFullBendSpeed: 120
@@ -36786,6 +36736,10 @@ MonoBehaviour:
   bendSpeed: 12
   returnSpeed: 3
   temp: {fileID: 0}
+  lastYaw: 0
+  lastPitch: 0
+  yawBend: 0
+  pitchBend: 0
 --- !u!1 &1067755985
 GameObject:
   m_ObjectHideFlags: 0
@@ -51915,8 +51869,6 @@ GameObject:
   - component: {fileID: 1491956049}
   - component: {fileID: 1491956048}
   - component: {fileID: 1491956050}
-  - component: {fileID: 1491956051}
-  - component: {fileID: 1491956052}
   m_Layer: 0
   m_Name: CenterEyeAnchor
   m_TagString: MainCamera
@@ -52042,79 +51994,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &1491956051
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1491956046}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
-  GlobalObjectIdHash: 3912685650
-  InScenePlacedSourceGlobalObjectIdHash: 0
-  m_InScenePlacedDisabledByDefault: 0
-  DeferredDespawnTick: 0
-  Ownership: 1
-  AlwaysReplicateAsRoot: 0
-  SynchronizeTransform: 1
-  m_InScenePlaced: 1
-  ActiveSceneSynchronization: 0
-  SceneMigrationSynchronization: 0
-  SpawnWithObservers: 1
-  DontDestroyWithOwner: 0
-  AutoObjectParentSync: 1
-  SyncOwnerTransformWhenParented: 1
-  AllowOwnerToParent: 0
---- !u!114 &1491956052
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1491956046}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e96cb6065543e43c4a752faaa1468eb1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Components.NetworkTransform
-  ShowTopMostFoldoutHeaderGroup: 1
-  NetworkTransformExpanded: 0
-  AutoOwnerAuthorityTickOffset: 1
-  PositionInterpolationType: 0
-  RotationInterpolationType: 0
-  ScaleInterpolationType: 0
-  PositionLerpSmoothing: 1
-  PositionMaxInterpolationTime: 0.1
-  RotationLerpSmoothing: 1
-  RotationMaxInterpolationTime: 0.1
-  ScaleLerpSmoothing: 1
-  ScaleMaxInterpolationTime: 0.1
-  AuthorityMode: 1
-  TickSyncChildren: 0
-  UseUnreliableDeltas: 0
-  SyncPositionX: 1
-  SyncPositionY: 1
-  SyncPositionZ: 1
-  SyncRotAngleX: 1
-  SyncRotAngleY: 1
-  SyncRotAngleZ: 1
-  SyncScaleX: 0
-  SyncScaleY: 0
-  SyncScaleZ: 0
-  PositionThreshold: 0.001
-  RotAngleThreshold: 0.01
-  ScaleThreshold: 0.01
-  UseQuaternionSynchronization: 0
-  UseQuaternionCompression: 0
-  UseHalfFloatPrecision: 0
-  InLocalSpace: 0
-  SwitchTransformSpaceWhenParented: 0
-  Interpolate: 1
-  SlerpPosition: 0
 --- !u!1 &1494953857
 GameObject:
   m_ObjectHideFlags: 0
@@ -53205,6 +53084,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1531576929
 GameObject:
   m_ObjectHideFlags: 0
@@ -57174,6 +57062,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1626061887
 GameObject:
   m_ObjectHideFlags: 0
@@ -67197,6 +67094,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!1 &1903473625
 GameObject:
   m_ObjectHideFlags: 0
@@ -75878,6 +75784,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb94c5e8d96b3b94da282e4506a66064, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ParentToController
+  poseSource: {fileID: 0}
+  ikTarget: {fileID: 0}
+  root: {fileID: 0}
+  mid: {fileID: 0}
+  tip: {fileID: 0}
+  maxStretch: 0.97
+  minReach: 0.02
+  positionOffset: {x: 0, y: 0, z: 0}
+  rotationOffset: {x: 0, y: 0, z: 0}
 --- !u!137 &15287825264113384
 SkinnedMeshRenderer:
   m_ObjectHideFlags: 0
