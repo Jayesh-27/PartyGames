@@ -7847,7 +7847,7 @@ Transform:
   m_GameObject: {fileID: 3417581582570793016}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: -0.4407226, z: 0, w: 0.8976434}
-  m_LocalPosition: {x: -0.00159, y: 0.0068, z: -0.00459}
+  m_LocalPosition: {x: -0.00159, y: -0.25, z: -0.00459}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -15340,7 +15340,7 @@ Transform:
   m_GameObject: {fileID: 6414602642162380133}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.44072267, z: 0, w: 0.8976433}
-  m_LocalPosition: {x: 0.007, y: 0, z: 0}
+  m_LocalPosition: {x: 0.007, y: -0.2568, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -21707,6 +21707,7 @@ GameObject:
   - component: {fileID: 7023151889411790794}
   - component: {fileID: 29757089948270133}
   - component: {fileID: 3924389342639220438}
+  - component: {fileID: 5400328669743787168}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -21978,7 +21979,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9189892641690595689}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5d6b5ddede7425846b00be4e526cea1a, type: 3}
   m_Name: 
@@ -22011,11 +22012,16 @@ MonoBehaviour:
   head: {fileID: 6646273813628899143}
   leftHand: {fileID: 6116657583890352159}
   rightHand: {fileID: 3584957236011107613}
-  rootOffset: {x: 0, y: 0, z: 0.1}
+  rootOffset: {x: 0, y: 0, z: -0.1}
   avatarEyeHeight: 1.25
   rootHeightAboveFeet: 0.5
   keepAboveFloor: 1
+  bodyTurnStartAngle: 50
+  bodyCatchUpAngle: 90
+  headBodyAlignmentTolerance: 5
   bodyTurnSpeed: 6
+  bodyCatchUpSpeed: 12
+  bodyTurnEffectStrength: 0.5
 --- !u!95 &29757089948270133
 Animator:
   serializedVersion: 7
@@ -22070,6 +22076,40 @@ MonoBehaviour:
   - m_Rig: {fileID: 4205876880756201124}
     m_Active: 1
   m_Effectors: []
+--- !u!114 &5400328669743787168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9189892641690595689}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 483da74136732744aa47022bf4994a42, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  head: {fileID: 6646273813628899143}
+  bodyRoot: {fileID: 7873178011221581537}
+  leftLeg: {fileID: 5430177001803618361}
+  rightLeg: {fileID: 2164480010711210649}
+  strideLength: 1.5
+  maxSwingAngle: 32
+  minSwingAngle: 6
+  fullSpeedAt: 1.4
+  moveThreshold: 0.12
+  stepDeadzone: 0.025
+  stepBuildUpDistance: 0.18
+  neckOffset: 0.09
+  stepLiftHeight: 0.03
+  stepWhenTurning: 1
+  turnSpeedThreshold: 35
+  turnStepStrength: 0.006
+  velocitySmoothing: 10
+  headingSmoothing: 10
+  amplitudeSmoothing: 10
+  teleportDistance: 0.5
+  invertSwing: 0
+  debugSpeed: 0
 --- !u!1 &9202731046329645335
 GameObject:
   m_ObjectHideFlags: 0
