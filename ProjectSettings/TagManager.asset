@@ -32,6 +32,7 @@ TagManager:
   - QDSUIToggleCheckboxRadio
   - QDSUIToggleThumbnail
   - obj_rope
+  - pickable_branch
   layers:
   - Default
   - TransparentFX
@@ -48,10 +49,10 @@ TagManager:
   - 
   - 
   - 
+  - pickable_rope
   - 
   - 
-  - 
-  - 
+  - stone
   - 
   - 
   - 
