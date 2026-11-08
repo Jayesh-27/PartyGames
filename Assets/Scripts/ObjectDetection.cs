@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using Oculus.Interaction;
 using Oculus.Interaction.HandGrab;
@@ -33,6 +34,12 @@ public class ObjectDetection : MonoBehaviour
         if ((pickable_layers.value & (1 << other.gameObject.layer)) == 0)
             return;
 
+        // Online: only the player who owns the item (the one who threw it in) runs the animation;
+        // the owner-authoritative NetworkTransform shows it to everyone else.
+        NetworkObject netObject = other.GetComponentInParent<NetworkObject>();
+        if (netObject != null && netObject.IsSpawned && !netObject.IsOwner)
+            return;
+
         targetObject = other.gameObject;
 
         // force the player to let go
@@ -59,9 +66,17 @@ public class ObjectDetection : MonoBehaviour
 
         yield return new WaitForSeconds(deleteAfter);
         enable = false;
-        grinder.onAdded(targetObject.tag);
-        Debug.Log("Destroying: " + targetObject.name);
-        Destroy(targetObject);
+
+        NetworkedPickable pickable = targetObject.GetComponentInParent<NetworkedPickable>();
+        if (pickable != null && pickable.IsSpawned)
+        {
+            pickable.RequestConsume(); // the server counts it for the recipe and despawns it for everyone
+        }
+        else
+        {
+            grinder.onAdded(targetObject.tag);
+            Destroy(targetObject);
+        }
     }
 
     private void Update()

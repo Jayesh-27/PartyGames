@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Deform;
+using Unity.Netcode;
 using UnityEngine;
 
 public enum PickableItem
@@ -27,7 +28,8 @@ public class Grinder : MonoBehaviour
     [SerializeField] private Transform rewardSpawnPoint;
     [SerializeField] private Deformable pipeDeformable;
     [SerializeField] private float moveSpeed = 0.5f;
-    [SerializeField] private float endZ = -1.3f;
+    [SerializeField] private float travelDistance = 0.8f; // how far the reward moves from the spawn point
+    [SerializeField] private Vector3 travelDirection = Vector3.back; // in the reward spawn point's local space, e.g. (1,0,0) or (0,0,-1)
     [SerializeField] private bool resetAdded = false;
 
     [SerializeField] private List<PickableItem> addedItems = new List<PickableItem>();
@@ -52,8 +54,7 @@ public class Grinder : MonoBehaviour
         if (spawnReward)
         {
             spawnReward = false;
-            GameObject reward = Instantiate(spawnRewardObject, rewardSpawnPoint.position, rewardSpawnPoint.rotation);
-            StartCoroutine(RiseReward(reward));
+            SpawnReward(spawnRewardObject);
         }
     }
 
@@ -79,8 +80,7 @@ public class Grinder : MonoBehaviour
 
             if (addedItems.Count == r.sequence.Length)
             {
-                GameObject reward = Instantiate(r.reward, rewardSpawnPoint.position, rewardSpawnPoint.rotation);
-                StartCoroutine(RiseReward(reward));
+                SpawnReward(r.reward);
                 addedItems.Clear();
             }
             return;
@@ -89,19 +89,69 @@ public class Grinder : MonoBehaviour
         addedItems.Clear();
     }
 
+    // Online, only the server creates the reward (a networked spawn, so every player sees it).
+    // Offline (no NetworkManager running) it is just a normal local instance.
+    private void SpawnReward(GameObject prefab)
+    {
+        NetworkManager nm = NetworkManager.Singleton;
+        bool online = nm != null && nm.IsListening;
+        if (online && !nm.IsServer)
+            return;
+
+        GameObject reward = Instantiate(prefab, rewardSpawnPoint.position, rewardSpawnPoint.rotation);
+        if (online && reward.TryGetComponent(out NetworkObject netObject))
+            netObject.Spawn();
+
+        StartCoroutine(RiseReward(reward));
+    }
+
     private IEnumerator RiseReward(GameObject reward)
     {
         BulgeDeformer bulge = reward.GetComponent<BulgeDeformer>();
         pipeDeformable.DeformerElements.Add(new DeformerElement(bulge));
 
-        while (reward.transform.position.z > endZ)
+        if (bulge == null)
+            Debug.LogWarning($"[Grinder] '{reward.name}' has no BulgeDeformer on its root", reward);
+
+        // Keep the Rigidbody (Meta's grab scripts need it) but stop physics from acting on it while it travels
+        Rigidbody rb = reward.GetComponent<Rigidbody>();
+        bool hadGravity = false, hadCollisions = true, wasKinematic = false;
+        if (rb != null)
         {
-            reward.transform.position += Vector3.back * moveSpeed * Time.deltaTime;
+            hadGravity = rb.useGravity;
+            hadCollisions = rb.detectCollisions;
+            wasKinematic = rb.isKinematic;
+            rb.useGravity = false;
+            rb.detectCollisions = false;
+            rb.isKinematic = true;
+        }
+
+        Vector3 direction = rewardSpawnPoint.TransformDirection(travelDirection).normalized;
+        float travelled = 0f;
+
+        while (reward != null && travelled < travelDistance)
+        {
+            float step = Mathf.Min(moveSpeed * Time.deltaTime, travelDistance - travelled);
+            reward.transform.position += direction * step;
+            travelled += step;
+            if (rb != null && !rb.isKinematic)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
             yield return null;
         }
 
         pipeDeformable.DeformerElements.RemoveAll(e => e.Component == bulge);
+        if (reward == null) yield break;
+
         Destroy(bulge);
+        if (rb != null)
+        {
+            rb.useGravity = hadGravity;
+            rb.detectCollisions = hadCollisions;
+            rb.isKinematic = wasKinematic;
+        }
     }
 
     private bool StartsWith(PickableItem[] recipe, List<PickableItem> current)
