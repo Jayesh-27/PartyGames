@@ -140,7 +140,26 @@ def do_bunny():
     arm = [o for o in bpy.data.objects if o.type == 'ARMATURE']
     print(f"[Props] bunny bones: {len(arm[0].data.bones) if arm else 0}")
 
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "Bunny.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "Bunny.blend"))   # rigged version, kept as the source
+
+    # Unity's glTF importer mangles this rig, so the game gets a plain mesh in the rest pose
+    dg = bpy.context.evaluated_depsgraph_get()
+    baked = []
+    for o in meshes:
+        ev = o.evaluated_get(dg)
+        me = bpy.data.meshes.new_from_object(ev)
+        me.transform(ev.matrix_world)
+        n = bpy.data.objects.new(o.name.split("_Base")[0].replace("C_Bandit_", "").replace("Base_", "") or o.name, me)
+        bpy.context.scene.collection.objects.link(n)
+        baked.append(n)
+    for o in list(bpy.data.objects):
+        if o not in baked:
+            bpy.data.objects.remove(o, do_unlink=True)
+    root = bpy.data.objects.new("Bunny", None)
+    bpy.context.scene.collection.objects.link(root)
+    for o in baked:
+        o.parent = root
+    bpy.context.view_layer.update()
     export(os.path.join(OUT, "Bunny.glb"), everything_under(root))
     preview("bunny", (0, 0, size.z * 0.5), size.z * 3.2, size.z * 0.75)
 

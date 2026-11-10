@@ -1,45 +1,55 @@
 using TMPro;
 using UnityEngine;
 
-/// <summary>Two-faced scoreboard over the field: score, phase/countdown, room code and ball speed.</summary>
+/// <summary>The boards above the two goals: round, score, what is happening, ball speed and the party totals.</summary>
 public class KeeperScoreboard : MonoBehaviour
 {
+    public TMP_Text[] roundTexts;
     public TMP_Text[] scoreTexts;
     public TMP_Text[] statusTexts;
-    public TMP_Text[] speedTexts;
+    public TMP_Text[] speedTexts;   // small line at the bottom
 
-    string lastScore, lastStatus, lastSpeed;
+    string lastRound, lastScore, lastStatus, lastSpeed;
 
     void Update()
     {
         KeeperMatch m = KeeperMatch.Instance;
         KeeperBall ball = KeeperBall.Instance;
-        bool online = m != null && m.IsSpawned;
+        PartySession party = PartySession.Instance;
+        bool online = m != null && m.IsSpawned && party != null;
 
-        string blue = ColorUtility.ToHtmlStringRGB(KeeperFx.TeamColor(0));
-        string red = ColorUtility.ToHtmlStringRGB(KeeperFx.TeamColor(1));
-        string score = online
-            ? $"<color=#{blue}>BLUE {m.ScoreBlue}</color>  :  <color=#{red}>{m.ScoreRed} {(m.BotActive ? "BOT" : "RED")}</color>"
-            : "KEEPER CLASH";
+        string round = "KEEPER CLASH", score = "", status = "", small = "";
+        if (online)
+        {
+            round = $"ROUND {Mathf.Max(1, party.Round)} / {party.roundsPerGame}   <color=#8892A8>|</color>   FIRST TO {m.GoalsToWin}";
+            if (party.Phase == PartyPhase.Round)
+            {
+                score = $"{PartyTeam.Tag(0, m.ScoreBlue.ToString())} <color=#8892A8>:</color> {PartyTeam.Tag(1, m.ScoreRed.ToString())}";
+                status = Status(m, party);
+            }
+            else
+            {
+                // intro, round result, game result: the party's headline takes the big line
+                score = party.Headline();
+                status = party.Detail();
+            }
+            small = ball != null && ball.IsFlying && m.Phase == KeeperPhase.Playing
+                ? $"{ball.State.speed * 3.6f:0} km/h"
+                : "PARTY   " + party.TotalsLine();
+        }
 
-        string status = online ? Status(m) : "Host, join with a code, or Practice";
-        string speed = online && ball != null && ball.IsFlying ? $"{ball.State.speed * 3.6f:0} km/h" : "";
-
+        if (round != lastRound) { lastRound = round; Set(roundTexts, round); }
         if (score != lastScore) { lastScore = score; Set(scoreTexts, score); }
         if (status != lastStatus) { lastStatus = status; Set(statusTexts, status); }
-        if (speed != lastSpeed) { lastSpeed = speed; Set(speedTexts, speed); }
+        if (small != lastSpeed) { lastSpeed = small; Set(speedTexts, small); }
     }
 
-    static string Status(KeeperMatch m)
+    static string Status(KeeperMatch m, PartySession party)
     {
-        string room = KeeperLobby.Instance != null ? KeeperLobby.Instance.RoomInfo : "";
         switch (m.Phase)
         {
-            case KeeperPhase.Waiting: return "Waiting for opponent" + (room.Length > 0 ? "\n" + room : "");
-            case KeeperPhase.Countdown: return Mathf.CeilToInt(m.TimeLeft).ToString() + (m.BotActive && room.Length > 0 ? "\n" + room : "");
-            case KeeperPhase.Playing: return m.BotActive && room.Length > 0 ? "Practice  " + room : "";
-            case KeeperPhase.GoalScored: return (m.LastScorer == 0 ? "BLUE" : "RED") + " SCORES!";
-            case KeeperPhase.MatchOver: return (m.Winner == 0 ? "BLUE" : "RED") + " WINS!";
+            case KeeperPhase.Countdown: return Mathf.CeilToInt(m.TimeLeft).ToString();
+            case KeeperPhase.GoalScored: return PartyTeam.Tag(m.LastScorer, party.SideName(m.LastScorer)) + " SCORES!";
         }
         return "";
     }

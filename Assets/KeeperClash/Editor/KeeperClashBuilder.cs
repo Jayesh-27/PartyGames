@@ -130,8 +130,7 @@ public static class KeeperClashBuilder
         BuildBot(a);
         BuildScoreboard();
         BuildFx();
-        RelayNetworkButtons keypad = SetupLobby();
-        BuildPlayer(keypad);
+        BuildPlayer();
         SetupRendering();
 
         EditorSceneManager.MarkSceneDirty(scene);
@@ -157,8 +156,6 @@ public static class KeeperClashBuilder
         {
             bool keep =
                 root.GetComponentInChildren<OVRCameraRig>(true) != null ||
-                root.GetComponent<NetworkManager>() != null ||
-                root.GetComponent<RelayNetworkButtons>() != null ||
                 root.GetComponent<EventSystem>() != null ||
                 (root.GetComponent<Volume>() != null && root.GetComponent<Volume>().isGlobal) ||
                 (root.GetComponent<Light>() != null && root.GetComponent<Light>().type == LightType.Directional);
@@ -466,7 +463,7 @@ public static class KeeperClashBuilder
             Box("NetRoof", end, new Vector3(0f, gh, s * (hl + gd * 0.5f)), new Vector3(gw, 0.02f, gd), netMat);
 
             Quaternion faceField = Quaternion.LookRotation(new Vector3(0f, 0f, s));
-            Text("TeamName", end, new Vector3(0f, gh + (h - gh) * 0.55f, s * (hl - 0.05f)), faceField, new Vector2(4f, 1.4f),
+            Text("TeamName", end, new Vector3(0f, h - 0.7f, s * (hl - 0.05f)), faceField, new Vector2(4f, 1.0f),
                 side == 0 ? "BLUE" : "RED", side == 0 ? Blue : Red);
 
             GameObject lightGo = new GameObject("GoalLight");
@@ -578,26 +575,32 @@ public static class KeeperClashBuilder
 
     static void BuildScoreboard()
     {
+        // one board above each goal, facing the field, so nothing hangs in the ball's way
+        PartyBuild.LoadUi();
+        KeeperArenaSpec a = new KeeperArenaSpec();
         GameObject root = new GameObject("Keeper_Scoreboard");
-        root.transform.position = new Vector3(0f, 4.4f, 0f);
         KeeperScoreboard board = root.AddComponent<KeeperScoreboard>();
-        Box("Panel", root.transform, Vector3.zero, new Vector3(2.8f, 1.4f, 0.12f), mDark, false);
-        Box("EdgeTop", root.transform, new Vector3(0f, 0.71f, 0f), new Vector3(2.84f, 0.03f, 0.14f), mNeonWhite, false);
-        Box("EdgeBottom", root.transform, new Vector3(0f, -0.71f, 0f), new Vector3(2.84f, 0.03f, 0.14f), mNeonWhite, false);
-        Box("EdgeLeft", root.transform, new Vector3(-1.41f, 0f, 0f), new Vector3(0.03f, 1.44f, 0.14f), mNeonBlue, false);
-        Box("EdgeRight", root.transform, new Vector3(1.41f, 0f, 0f), new Vector3(0.03f, 1.44f, 0.14f), mNeonRed, false);
 
+        var rounds = new List<TMP_Text>();
         var scores = new List<TMP_Text>();
         var statuses = new List<TMP_Text>();
         var speeds = new List<TMP_Text>();
-        for (int face = 0; face < 2; face++)
+        const float W = 1100f, H = 400f, metres = 5.2f;
+        float y = a.goalHeight + 0.30f + H / W * metres * 0.5f;
+        for (int side = 0; side < 2; side++)
         {
-            float z = face == 0 ? -0.07f : 0.07f;
-            Quaternion rot = Quaternion.LookRotation(new Vector3(0f, 0f, face == 0 ? 1f : -1f));
-            scores.Add(Text("Score", root.transform, new Vector3(0f, 0.32f, z), rot, new Vector2(2.6f, 0.6f), "KEEPER CLASH", Color.white));
-            statuses.Add(Text("Status", root.transform, new Vector3(0f, -0.18f, z), rot, new Vector2(2.6f, 0.45f), "", new Color(1f, 0.92f, 0.6f)));
-            speeds.Add(Text("Speed", root.transform, new Vector3(0f, -0.55f, z), rot, new Vector2(2.6f, 0.2f), "", Neutral));
+            float sign = KeeperArenaSpec.Sign(side);
+            Vector3 pos = new Vector3(0f, y, sign * (a.HalfLength - 0.04f));
+            Quaternion rot = Quaternion.LookRotation(new Vector3(0f, 0f, sign));
+            Canvas canvas = PartyBuild.WorldCanvas(side == 0 ? "BoardOverBlueGoal" : "BoardOverRedGoal", root.transform, pos, rot, new Vector2(W, H), metres);
+            Transform card = PartyBuild.Card(canvas.transform, "Card", 0f, 0f, W, H, PartyTeam.Card, 44f);
+            PartyBuild.Panel(card, "TeamBar", 60f, 0f, W - 120f, 12f, PartyTeam.Of(side), 6f);
+            rounds.Add(PartyBuild.Label(card, "Round", 40f, 22f, W - 80f, 44f, "KEEPER CLASH", 32f, PartyTeam.Soft));
+            scores.Add(PartyBuild.Label(card, "Score", 40f, 62f, W - 80f, 168f, "0 : 0", 160f, Color.white, PartyBuild.TitleFont, TextAlignmentOptions.Center, true));
+            statuses.Add(PartyBuild.Label(card, "Status", 60f, 230f, W - 120f, 112f, "", 62f, PartyTeam.Gold, PartyBuild.TitleFont, TextAlignmentOptions.Center, true));
+            speeds.Add(PartyBuild.Label(card, "Small", 40f, 346f, W - 80f, 40f, "", 28f, PartyTeam.Soft));
         }
+        board.roundTexts = rounds.ToArray();
         board.scoreTexts = scores.ToArray();
         board.statusTexts = statuses.ToArray();
         board.speedTexts = speeds.ToArray();
@@ -708,63 +711,11 @@ public static class KeeperClashBuilder
 
     // ================================================================== lobby, player, rendering
 
-    static RelayNetworkButtons SetupLobby()
-    {
-        RelayNetworkButtons keypad = Object.FindFirstObjectByType<RelayNetworkButtons>(FindObjectsInactive.Include);
-        if (keypad == null)
-        {
-            Debug.LogWarning("[KeeperClash] No keypad canvas found in the copied scene.");
-            return null;
-        }
-
-        SerializedObject so = new SerializedObject(keypad);
-        SerializedProperty maxPlayers = so.FindProperty("maxPlayers");
-        if (maxPlayers != null) maxPlayers.intValue = 2;
-        so.ApplyModifiedPropertiesWithoutUndo();
-
-        Transform old = keypad.transform.Find("Practice");
-        if (old != null) Object.DestroyImmediate(old.gameObject);
-
-        RectTransform host = keypad.transform.Find("Host") as RectTransform;
-        RectTransform client = keypad.transform.Find("Client") as RectTransform;
-        if (host == null)
-        {
-            Debug.LogWarning("[KeeperClash] No Host button on the keypad canvas; Practice button not added.");
-            return keypad;
-        }
-
-        GameObject practice = Object.Instantiate(host.gameObject, host.parent);
-        practice.name = "Practice";
-        RectTransform rt = (RectTransform)practice.transform;
-        Vector2 basePos = client != null ? (host.anchoredPosition + client.anchoredPosition) * 0.5f : host.anchoredPosition;
-        float lowest = client != null ? Mathf.Min(host.anchoredPosition.y, client.anchoredPosition.y) : host.anchoredPosition.y;
-        rt.anchoredPosition = new Vector2(basePos.x, lowest - host.rect.height * 1.25f);
-
-        TMP_Text label = practice.GetComponentInChildren<TMP_Text>(true);
-        if (label != null) label.text = "Practice";
-
-        Button button = practice.GetComponent<Button>();
-        button.onClick = new Button.ButtonClickedEvent();
-        return keypad;
-    }
-
-    static void BuildPlayer(RelayNetworkButtons keypad)
+    static void BuildPlayer()
     {
         GameObject go = new GameObject("Keeper_Player");
         KeeperLocalPlayer player = go.AddComponent<KeeperLocalPlayer>();
-        KeeperLobby lobby = go.AddComponent<KeeperLobby>();
         player.rig = Object.FindFirstObjectByType<OVRCameraRig>(FindObjectsInactive.Include);
-        lobby.keypad = keypad;
-        if (keypad != null)
-        {
-            player.lobbyCanvas = keypad.GetComponent<Canvas>();
-            Transform practice = keypad.transform.Find("Practice");
-            if (practice != null)
-            {
-                Button b = practice.GetComponent<Button>();
-                UnityEventTools.AddPersistentListener(b.onClick, lobby.StartPractice);
-            }
-        }
     }
 
     static void SetupRendering()

@@ -9,7 +9,7 @@ using UnityEngine;
 /// - moves the camera rig to your goal (or the lobby spot when not connected),
 /// - recenters you when you click a thumbstick or recenter the headset,
 /// - turns off teleport/turn locomotion in this scene so keepers stay in their goal,
-/// - hides the lobby keypad during a session (without stopping its Relay heartbeat),
+/// - leaves the party when the Menu button is held for a second,
 /// - tracks your hands, head and body so the ball can tell when you touch it,
 /// - plays controller vibration.
 /// </summary>
@@ -65,6 +65,7 @@ public class KeeperLocalPlayer : MonoBehaviour
     bool recenterHooked;
     float stopLeftAt, stopRightAt;
     bool turnLatched;
+    float menuHeld;
 
     void Awake()
     {
@@ -111,8 +112,12 @@ public class KeeperLocalPlayer : MonoBehaviour
 
         if (OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick) || OVRInput.GetDown(OVRInput.Button.SecondaryThumbstick))
             placeRequested = true;
-        if (OVRInput.GetDown(OVRInput.Button.Start) && KeeperLobby.Instance != null)
-            KeeperLobby.Instance.Leave();
+        if (PartyConnection.InSession && OVRInput.Get(OVRInput.Button.Start))
+        {
+            menuHeld += Time.unscaledDeltaTime;
+            if (menuHeld >= 1f && PartyConnection.Instance != null) { menuHeld = 0f; PartyConnection.Instance.Leave(); }
+        }
+        else menuHeld = 0f;
     }
 
     void LateUpdate()
