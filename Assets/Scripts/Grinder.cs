@@ -19,6 +19,38 @@ public struct Recipe
 
 public class Grinder : MonoBehaviour
 {
+    [Tooltip("-1 = takes any item. 0 = Blue grinder, 1 = Red grinder: only takes items of that team.")]
+    public int team = -1;
+
+    private static readonly List<Grinder> all = new List<Grinder>();
+    private void OnEnable() => all.Add(this);
+    private void OnDisable() => all.Remove(this);
+
+    /// <summary>The grinder of that team, or any grinder if there is no such team grinder.</summary>
+    public static Grinder ForTeam(int team)
+    {
+        foreach (Grinder g in all)
+            if (g.team == team) return g;
+        return all.Count > 0 ? all[0] : null;
+    }
+
+    /// <summary>True if this grinder grinds this item: it is one of the recipe items and has the right team colour.</summary>
+    public bool Accepts(GameObject item)
+    {
+        if (item == null) return false;
+        if (team >= 0)
+        {
+            int itemTeam = TeamItem.TeamOf(item);
+            if (itemTeam >= 0 && itemTeam != team) return false;
+        }
+        Transform root = item.transform;
+        NetworkObject no = item.GetComponentInParent<NetworkObject>();
+        if (no != null) root = no.transform;
+        for (int i = 0; i < pickableObjects.Length; i++)
+            if (pickableObjects[i] != null && (item.CompareTag(pickableObjects[i].tag) || root.CompareTag(pickableObjects[i].tag))) return true;
+        return false;
+    }
+
     [SerializeField] private GameObject Grinder1;
     [SerializeField] private GameObject Grinder2;
     [SerializeField] private float rotationSpeed = 1f;
@@ -48,8 +80,8 @@ public class Grinder : MonoBehaviour
             resetAdded = false;
         }
 
-        Grinder1.transform.Rotate(-Vector3.up * rotationSpeed * Time.deltaTime);
-        Grinder2.transform.Rotate(-Vector3.up * rotationSpeed * Time.deltaTime);
+        if (Grinder1 != null) Grinder1.transform.Rotate(-Vector3.up * rotationSpeed * Time.deltaTime);
+        if (Grinder2 != null) Grinder2.transform.Rotate(-Vector3.up * rotationSpeed * Time.deltaTime);
 
         if (spawnReward)
         {
@@ -107,11 +139,10 @@ public class Grinder : MonoBehaviour
 
     private IEnumerator RiseReward(GameObject reward)
     {
+        // the pipe bulge is optional: the toon grinder has a chute instead of a pipe
         BulgeDeformer bulge = reward.GetComponent<BulgeDeformer>();
-        pipeDeformable.DeformerElements.Add(new DeformerElement(bulge));
-
-        if (bulge == null)
-            Debug.LogWarning($"[Grinder] '{reward.name}' has no BulgeDeformer on its root", reward);
+        if (pipeDeformable != null && bulge != null)
+            pipeDeformable.DeformerElements.Add(new DeformerElement(bulge));
 
         // Keep the Rigidbody (Meta's grab scripts need it) but stop physics from acting on it while it travels
         Rigidbody rb = reward.GetComponent<Rigidbody>();
@@ -142,10 +173,11 @@ public class Grinder : MonoBehaviour
             yield return null;
         }
 
-        pipeDeformable.DeformerElements.RemoveAll(e => e.Component == bulge);
+        if (pipeDeformable != null && bulge != null)
+            pipeDeformable.DeformerElements.RemoveAll(e => e.Component == bulge);
         if (reward == null) yield break;
 
-        Destroy(bulge);
+        if (bulge != null) Destroy(bulge);
         if (rb != null)
         {
             rb.useGravity = hadGravity;

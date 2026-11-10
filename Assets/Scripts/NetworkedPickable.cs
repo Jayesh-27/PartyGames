@@ -57,15 +57,16 @@ public class NetworkedPickable : NetworkBehaviour
     }
 
     /// <summary>Called by the owner when the grinder has finished with this item.</summary>
-    public void RequestConsume() => ConsumeServerRpc();
+    public void RequestConsume(int grinderTeam = -1) => ConsumeServerRpc(grinderTeam);
 
     [ServerRpc]
-    private void ConsumeServerRpc()
+    private void ConsumeServerRpc(int grinderTeam)
     {
         if (consumed) return;
         consumed = true;
 
-        Grinder grinder = FindFirstObjectByType<Grinder>();
+        // with two team grinders, the item counts for the grinder it was dropped into
+        Grinder grinder = Grinder.ForTeam(grinderTeam);
         if (grinder != null) grinder.onAdded(tag);
 
         NetworkObject.Despawn(true);

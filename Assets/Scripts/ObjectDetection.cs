@@ -40,6 +40,10 @@ public class ObjectDetection : MonoBehaviour
         if (netObject != null && netObject.IsSpawned && !netObject.IsOwner)
             return;
 
+        // a team grinder only takes recipe items of its own colour; everything else just lies in the hopper
+        if (grinder != null && grinder.team >= 0 && !grinder.Accepts(other.gameObject))
+            return;
+
         targetObject = other.gameObject;
 
         // force the player to let go
@@ -70,7 +74,7 @@ public class ObjectDetection : MonoBehaviour
         NetworkedPickable pickable = targetObject.GetComponentInParent<NetworkedPickable>();
         if (pickable != null && pickable.IsSpawned)
         {
-            pickable.RequestConsume(); // the server counts it for the recipe and despawns it for everyone
+            pickable.RequestConsume(grinder != null ? grinder.team : -1); // the server counts it for the recipe and despawns it for everyone
         }
         else
         {
