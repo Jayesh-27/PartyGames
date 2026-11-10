@@ -20,6 +20,11 @@ public class KeeperBall : NetworkBehaviour
     public Transform shadow;
     public Renderer shadowRenderer;
     public AudioSource hum;
+    [Tooltip("Ball takes the colour of the team that touched it last")]
+    public bool teamColors = true;
+    [Tooltip("Ball colour before anyone has touched it (after a serve)")]
+    public Color neutralColor = new Color(0.9f, 0.95f, 1f);
+    [Tooltip("Used only when teamColors is off: colour by speed")]
     public Gradient heatColors;
 
     [Header("Network")]
@@ -375,7 +380,7 @@ public class KeeperBall : NetworkBehaviour
         transform.position = p;
 
         float heat = parked ? 0f : Heat01;
-        Color c = heatColors.Evaluate(heat);
+        Color c = BallColor(heat);
         if (parked)
         {
             KeeperMatch m = Match;
@@ -433,6 +438,19 @@ public class KeeperBall : NetworkBehaviour
 
         if (!parked && IsFlying) KeeperFx.SetDanger(state.targetSide, 1f - Mathf.Clamp01(Mathf.Abs(state.pos.z - Arena.GoalLineZ(state.targetSide)) / Arena.length));
         else KeeperFx.SetDanger(-1, 0f);
+    }
+
+    /// <summary>
+    /// The colour of the team that touched the ball last (white after a serve), getting brighter and hotter
+    /// as it speeds up. Turn off teamColors to go back to the speed gradient.
+    /// </summary>
+    Color BallColor(float heat)
+    {
+        if (!teamColors || state.lastHitter > 1) return teamColors ? Color.Lerp(neutralColor, Color.white, heat) : heatColors.Evaluate(heat);
+        Color team = KeeperFx.TeamColor(state.lastHitter);
+        Color c = Color.Lerp(team * 0.85f, Color.Lerp(team, Color.white, 0.35f), heat);
+        c.a = 1f;
+        return c;
     }
 
     void SetSparks(float rate, Color c = default)

@@ -89,6 +89,16 @@ public static class KeeperClashBuilder
         EditorApplication.Exit(code);
     }
 
+    /// <summary>Command line entry: only the self-test (leaves the scene alone).</summary>
+    public static void BatchTest()
+    {
+        int code;
+        try { code = SelfTest() ? 0 : 2; }
+        catch (Exception e) { Debug.LogException(e); code = 1; }
+        Debug.Log($"[KeeperClash] BATCH DONE exit={code}");
+        EditorApplication.Exit(code);
+    }
+
     // ================================================================== scene
 
     public static void BuildScene()
@@ -891,43 +901,63 @@ public static class KeeperClashBuilder
         const float dt = 1f / 72f;
         bool ok = true;
 
-        // 1) shots and serves always finish (goal or backboard) and stay inside the arena
-        int goals = 0, backboards = 0, stuck = 0, escaped = 0;
-        float maxTime = 0f;
-        for (int i = 0; i < 500; i++)
+        // 1) shots and serves always finish (goal or backboard) and stay inside the arena,
+        //    with the default steering and with no steering at all
+        foreach (float steer in new[] { t.homingStrength, 0f, 180f })
         {
-            KeeperBallState s;
-            if (i % 5 == 0)
+            KeeperBallTuning tt = JsonUtility.FromJson<KeeperBallTuning>(JsonUtility.ToJson(t));
+            tt.homingStrength = steer;
+            int goals = 0, backboards = 0, stuck = 0, escaped = 0;
+            float maxTime = 0f;
+            for (int i = 0; i < 500; i++)
             {
-                s = KeeperBallSim.Serve(a, t, i % 2, 1, R(), R(), R());
-            }
-            else
-            {
-                int hitter = i % 2;
-                s = KeeperBallSim.Parked(a, t, 1);
-                s.pos = a.KeeperSpot(hitter) + new Vector3((R() - 0.5f) * 3f, 0.4f + R() * 1.8f, 0f) + a.Forward(hitter) * 0.3f;
-                s.touches = (byte)rng.Next(0, 20);
-                Vector3 away = (a.Forward(hitter) + new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.5f) * 1.5f).normalized;
-                Vector3 swing = new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.3f * KeeperArenaSpec.Sign(hitter)) * (R() * 8f);
-                KeeperBallSim.ApplyTouch(ref s, a, t, hitter, away, swing, R(), R());
-            }
+                KeeperBallState s;
+                if (i % 5 == 0)
+                {
+                    s = KeeperBallSim.Serve(a, tt, i % 2, 1, R(), R(), R());
+                }
+                else
+                {
+                    int hitter = i % 2;
+                    s = KeeperBallSim.Parked(a, tt, 1);
+                    s.pos = a.KeeperSpot(hitter) + new Vector3((R() - 0.5f) * 3f, 0.4f + R() * 1.8f, 0f) + a.Forward(hitter) * 0.3f;
+                    s.touches = (byte)rng.Next(0, 20);
+                    Vector3 away = (a.Forward(hitter) + new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.5f) * 1.5f).normalized;
+                    Vector3 swing = new Vector3(R() - 0.5f, R() - 0.5f, R() - 0.3f * KeeperArenaSpec.Sign(hitter)) * (R() * 8f);
+                    KeeperBallSim.ApplyTouch(ref s, a, tt, hitter, away, swing, R(), R());
+                }
 
-            bool done = false;
-            float time;
-            for (time = 0f; time < 6f; time += dt)
-            {
-                KeeperStepResult res = KeeperBallSim.Step(ref s, dt, a, t, true, out _);
-                Vector3 p = s.pos;
-                if (Mathf.Abs(p.x) > a.HalfWidth + 0.01f || p.y < -0.01f || p.y > a.height + 0.01f || Mathf.Abs(p.z) > a.HalfLength + a.goalDepth + 0.01f)
-                    escaped++;
-                if (res == KeeperStepResult.Goal) { goals++; done = true; break; }
-                if (res == KeeperStepResult.Backboard) { backboards++; done = true; break; }
+                bool done = false;
+                float time;
+                for (time = 0f; time < 10f; time += dt)
+                {
+                    KeeperStepResult res = KeeperBallSim.Step(ref s, dt, a, tt, true, out _);
+                    Vector3 p = s.pos;
+                    if (Mathf.Abs(p.x) > a.HalfWidth + 0.01f || p.y < -0.01f || p.y > a.height + 0.01f || Mathf.Abs(p.z) > a.HalfLength + a.goalDepth + 0.01f)
+                        escaped++;
+                    if (res == KeeperStepResult.Goal) { goals++; done = true; break; }
+                    if (res == KeeperStepResult.Backboard) { backboards++; done = true; break; }
+                }
+                maxTime = Mathf.Max(maxTime, time);
+                if (!done) stuck++;
             }
-            maxTime = Mathf.Max(maxTime, time);
-            if (!done) stuck++;
+            Debug.Log($"[KeeperClash] TEST shots (steering {steer} deg/s): goals={goals} backboards={backboards} stuck={stuck} escaped={escaped} longest={maxTime:0.00}s");
+            if (stuck > 0 || escaped > 0) ok = false;
         }
-        Debug.Log($"[KeeperClash] TEST shots: goals={goals} backboards={backboards} stuck={stuck} escaped={escaped} longest={maxTime:0.00}s");
-        if (stuck > 0 || escaped > 0) ok = false;
+
+        // 1b) with no steering the ball flies dead straight in open air
+        {
+            KeeperBallTuning t0 = JsonUtility.FromJson<KeeperBallTuning>(JsonUtility.ToJson(t));
+            t0.homingStrength = 0f;
+            KeeperBallState s0 = KeeperBallSim.Parked(a, t0, 1);
+            s0.pos = new Vector3(0f, 2f, -5f);
+            KeeperBallSim.ApplyTouch(ref s0, a, t0, 0, new Vector3(0.3f, 0.1f, 1f), Vector3.zero, 0.5f, 0.5f);
+            Vector3 d0 = s0.vel.normalized;
+            for (int k = 0; k < 20; k++) KeeperBallSim.Step(ref s0, dt, a, t0, true, out _);
+            bool straight = Vector3.Angle(d0, s0.vel) < 0.01f && s0.lastHitter == 0;
+            Debug.Log($"[KeeperClash] TEST no steering flies straight: {(straight ? "ok" : "FAIL")}");
+            ok &= straight;
+        }
 
         // 2) speed goes up per touch and stops at the max
         bool speedOk = true;
@@ -950,7 +980,7 @@ public static class KeeperClashBuilder
         bb.speed = 10f;
         bb.vel = new Vector3(0f, 0f, 10f);
         bb.targetSide = 1;
-        bb.target = a.TargetPoint(1, 0.5f, 0.5f, t.targetInset, t.targetBehindLine);
+        bb.target = KeeperBallSim.GoalTarget(a, t, 1);
         bb.homeTimer = -100f; // no homing: fly straight into the board
         bool sawBackboard = false;
         for (float time = 0f; time < 2f && !sawBackboard; time += dt)

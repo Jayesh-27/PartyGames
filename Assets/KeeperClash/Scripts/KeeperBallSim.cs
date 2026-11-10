@@ -20,7 +20,10 @@ public struct KeeperBallState : INetworkSerializable
     public byte targetSide;     // goal the ball is heading for: 0 = Blue (-Z), 1 = Red (+Z)
     public byte mode;           // KeeperBallMode
     public byte touches;        // touches since the serve (sets the speed)
+    public byte lastHitter;     // side that touched it last (its colour); NoHitter after a serve
     public ushort seq;          // goes up on every serve/touch/backboard/goal
+
+    public const byte NoHitter = 255;
 
     public KeeperBallMode Mode
     {
@@ -39,6 +42,7 @@ public struct KeeperBallState : INetworkSerializable
         s.SerializeValue(ref targetSide);
         s.SerializeValue(ref mode);
         s.SerializeValue(ref touches);
+        s.SerializeValue(ref lastHitter);
         s.SerializeValue(ref seq);
     }
 }
@@ -52,28 +56,32 @@ public class KeeperBallTuning
     public float maxSpeed = 22f;
     public bool speedUpOnBackboard = false;
 
-    [Header("Homing")]
+    [Header("Homing (steering toward the centre of the goal)")]
+    [Tooltip("How hard the ball keeps steering toward the centre of the goal it is chasing, in degrees per second. " +
+             "0 = no steering at all: the ball flies straight where you hit it and only bounces off walls.")]
+    [Range(0f, 360f)] public float homingStrength = 45f;
+    [Tooltip("Extra steering per touch in a rally (degrees per second). 0 = same steering all rally")]
+    public float homingPerTouch = 0f;
     [Tooltip("Seconds the ball flies straight right after a touch, so your hit direction shows")]
     public float homingDelay = 0.08f;
-    [Tooltip("Seconds to go from no homing to full homing")]
+    [Tooltip("Seconds to go from no steering to full steering")]
     public float homingRamp = 0.25f;
-    [Tooltip("Turning radius = distance to target x this. Keep it below 0.5 so the ball can always reach the goal")]
-    public float turnRadiusFactor = 0.42f;
-    public float minTurnRadius = 0.3f;
-    public float maxTurnRadius = 6f;
 
     [Header("Aiming")]
     [Tooltip("Hand speed (m/s) where your swing starts to aim the shot")]
     public float aimMinSwing = 0.6f;
-    [Tooltip("Hand speed (m/s) where your swing fully aims the shot")]
+    [Tooltip("Hand speed (m/s) where the ball goes exactly where you swing")]
     public float aimFullSwing = 3f;
-    [Range(0f, 1f)] public float aimInfluence = 1f;
-    [Tooltip("Random spread around the aimed point, metres")]
-    public float aimJitter = 0.25f;
-    [Tooltip("Keep aim points this far inside the posts (on top of the ball radius)")]
-    public float targetInset = 0.12f;
-    [Tooltip("Aim points sit this far behind the goal line so the ball goes in fully")]
+    [Tooltip("0 = the ball leaves exactly the way you hit it. 1 = every touch is sent straight at the goal centre")]
+    [Range(0f, 1f)] public float launchAssist = 0.15f;
+    [Tooltip("Random spread on every touch, degrees")]
+    public float launchJitter = 3f;
+    [Tooltip("A touch always sends the ball at least this much toward the other end (0 to 1), so it can't go back into your own goal")]
+    [Range(0.1f, 0.9f)] public float minForward = 0.35f;
+    [Tooltip("The steering aims this far behind the goal line so the ball goes in fully")]
     public float targetBehindLine = 0.6f;
+
+    public float SteerDegrees(int touches) => Mathf.Max(0f, homingStrength + homingPerTouch * touches);
 
     public float SpeedFor(int touches) => Mathf.Min(maxSpeed, baseSpeed + speedPerTouch * touches);
 
@@ -111,30 +119,67 @@ public static class KeeperBallSim
 
             KeeperStepResult r = Collide(ref s, a, t, authoritative);
             if (r > result) result = r;
+            KeepMovingEndward(ref s, t);
 
             if (IsGoal(s.pos, a, out goalSide)) return KeeperStepResult.Goal;
         }
         return result;
     }
 
+    /// <summary>
+    /// Steering: the ball keeps turning toward the centre of the goal it is chasing, at most SteerDegrees per
+    /// second, for the whole flight. With 0 it never turns and flies straight like a normal ball.
+    /// </summary>
     static void Home(ref KeeperBallState s, float h, KeeperBallTuning t)
     {
         s.homeTimer += h;
         if (s.homeTimer <= 0f) return;
 
-        float strength = t.homingRamp > 0f ? Mathf.Clamp01(s.homeTimer / t.homingRamp) : 1f;
+        float degrees = t.SteerDegrees(s.touches);
+        if (degrees <= 0f) return;
+
+        // after a long flight steer harder, so a strong setting can never leave the ball circling
+        if (s.flightTime > 4f) degrees *= 1f + (s.flightTime - 4f);
+
+        float ramp = t.homingRamp > 0f ? Mathf.Clamp01(s.homeTimer / t.homingRamp) : 1f;
         Vector3 to = s.target - s.pos;
         float dist = to.magnitude;
         if (dist < 1e-4f) return;
 
-        // tighter turns if a flight takes suspiciously long, so the ball can never circle forever
-        float factor = t.turnRadiusFactor / (1f + Mathf.Max(0f, s.flightTime - 3f));
-        float radius = Mathf.Clamp(dist * factor, t.minTurnRadius, t.maxTurnRadius);
-        float maxAngle = s.speed / radius * h * strength;
-
         Vector3 dir = s.vel.sqrMagnitude > 1e-8f ? s.vel.normalized : to / dist;
-        dir = Vector3.RotateTowards(dir, to / dist, maxAngle, 0f);
+        dir = TurnTowards(dir, to / dist, degrees * Mathf.Deg2Rad * h * ramp);
         s.vel = dir * s.speed;
+    }
+
+    /// <summary>
+    /// A grazing hit on a post (or steering near the goal line) can leave the ball zig-zagging between the side
+    /// walls while hardly moving toward either end. Keep part of its speed along the field so rallies never stall.
+    /// </summary>
+    static void KeepMovingEndward(ref KeeperBallState s, KeeperBallTuning t)
+    {
+        float minZ = s.speed * Mathf.Clamp(t.minForward * 0.8f, 0.05f, 0.9f);
+        if (Mathf.Abs(s.vel.z) >= minZ) return;
+
+        float sz = Mathf.Abs(s.vel.z) > 1e-4f ? Mathf.Sign(s.vel.z) : Mathf.Sign(s.target.z - s.pos.z);
+        Vector3 lateral = new Vector3(s.vel.x, s.vel.y, 0f);
+        float latSpeed = Mathf.Sqrt(Mathf.Max(0f, s.speed * s.speed - minZ * minZ));
+        s.vel = (lateral.sqrMagnitude > 1e-8f ? lateral.normalized * latSpeed : Vector3.zero) + new Vector3(0f, 0f, sz * minZ);
+    }
+
+    /// <summary>Turns unit vector from toward unit vector to by at most maxRadians (plain maths, same on every device).</summary>
+    public static Vector3 TurnTowards(Vector3 from, Vector3 to, float maxRadians)
+    {
+        float cos = Mathf.Clamp(Vector3.Dot(from, to), -1f, 1f);
+        float angle = Mathf.Acos(cos);
+        if (angle <= maxRadians || angle < 1e-6f) return to;
+
+        Vector3 axis = Vector3.Cross(from, to);
+        if (axis.sqrMagnitude < 1e-10f) axis = Vector3.Cross(from, Mathf.Abs(from.y) < 0.9f ? Vector3.up : Vector3.right);
+        axis.Normalize();
+        // Rodrigues' rotation of from around axis
+        float c = Mathf.Cos(maxRadians), sn = Mathf.Sin(maxRadians);
+        Vector3 r = from * c + Vector3.Cross(axis, from) * sn + axis * (Vector3.Dot(axis, from) * (1f - c));
+        return r.normalized;
     }
 
     static KeeperStepResult Collide(ref KeeperBallState s, KeeperArenaSpec a, KeeperBallTuning t, bool authoritative)
@@ -144,7 +189,16 @@ public static class KeeperBallSim
 
         // goal posts and crossbars
         for (int side = 0; side < 2; side++)
-            if (CollideFrame(ref s, a, side)) res = Max(res, KeeperStepResult.Post);
+        {
+            if (!CollideFrame(ref s, a, side)) continue;
+            res = Max(res, KeeperStepResult.Post);
+            // bounced off the frame of the goal it was chasing, back up the field: same as the backboard rule
+            if (side == s.targetSide && s.vel.z * KeeperArenaSpec.Sign(side) < 0f)
+            {
+                Retarget(ref s, a, t, authoritative);
+                res = Max(res, KeeperStepResult.Backboard);
+            }
+        }
 
         // floor and ceiling
         if (s.pos.y < r) { s.pos.y = r; Reflect(ref s.vel, Vector3.up); res = Max(res, KeeperStepResult.Bounce); }
@@ -249,7 +303,7 @@ public static class KeeperBallSim
     {
         int side = 1 - s.targetSide;
         s.targetSide = (byte)side;
-        s.target = a.TargetPoint(side, Hash01(s.seq, 11u), Hash01(s.seq, 23u), t.targetInset, t.targetBehindLine);
+        s.target = GoalTarget(a, t, side);
         if (t.speedUpOnBackboard)
         {
             s.speed = Mathf.Min(t.maxSpeed, s.speed + t.speedPerTouch);
@@ -259,50 +313,62 @@ public static class KeeperBallSim
         if (authoritative) s.seq++;
     }
 
+    /// <summary>The point the ball steers at: the centre of that goal, a little behind the line.</summary>
+    public static Vector3 GoalTarget(KeeperArenaSpec a, KeeperBallTuning t, int side) =>
+        a.GoalCenter(side) + new Vector3(0f, 0f, KeeperArenaSpec.Sign(side) * t.targetBehindLine);
+
     /// <summary>
-    /// The keeper of hitterSide touched the ball: it now heads for the other goal, faster.
-    /// awayNormal points from the hand/body to the ball. swingVelocity is the hand's velocity (aims the shot).
+    /// The keeper of hitterSide touched the ball: it now chases the other goal, faster, and takes that team's colour.
+    /// It leaves the way it was hit: awayNormal points from the hand/body to the ball (a block), and a fast swing
+    /// (swingVelocity, the hand's velocity) sends it along the swing. So you have to aim; a bad touch
+    /// can hit the far wall, and the backboard rule then sends it back at your own goal.
     /// </summary>
     public static void ApplyTouch(ref KeeperBallState s, KeeperArenaSpec a, KeeperBallTuning t, int hitterSide,
         Vector3 awayNormal, Vector3 swingVelocity, float rand1, float rand2)
     {
         int goal = 1 - hitterSide;
-        s.touches = (byte)Mathf.Min(255, s.touches + 1);
+        s.touches = (byte)Mathf.Min(254, s.touches + 1);
         s.speed = t.SpeedFor(s.touches);
+        s.target = GoalTarget(a, t, goal);
 
         Vector3 forward = a.Forward(hitterSide);
-        Vector3 randomTarget = a.TargetPoint(goal, rand1, rand2, t.targetInset, t.targetBehindLine);
-        Vector3 target = randomTarget;
+        Vector3 dir = awayNormal.sqrMagnitude > 1e-8f ? awayNormal.normalized : forward;
 
         float swing = swingVelocity.magnitude;
-        float aim = 0f;
-        Vector3 swingDir = forward;
         if (swing > 1e-3f)
         {
-            swingDir = swingVelocity / swing;
-            aim = Mathf.Clamp01((swing - t.aimMinSwing) / Mathf.Max(0.01f, t.aimFullSwing - t.aimMinSwing)) * t.aimInfluence;
+            float aim = Mathf.Clamp01((swing - t.aimMinSwing) / Mathf.Max(0.01f, t.aimFullSwing - t.aimMinSwing));
+            dir = Vector3.Lerp(dir, swingVelocity / swing, aim);
+            if (dir.sqrMagnitude < 1e-6f) dir = forward;
+            dir.Normalize();
         }
-
-        float towardGoal = Vector3.Dot(swingDir, forward);
-        if (aim > 0f && towardGoal > 0.15f)
-        {
-            // where the swing direction would cross the other goal's line
-            float dist = Mathf.Abs(a.GoalLineZ(goal) - s.pos.z);
-            Vector3 onLine = s.pos + swingDir * (dist / towardGoal);
-            Vector3 jitter = new Vector3(rand1 - 0.5f, rand2 - 0.5f, 0f) * (2f * t.aimJitter);
-            Vector3 aimed = a.ClampTarget(goal, onLine + jitter, t.targetInset, t.targetBehindLine);
-            target = Vector3.Lerp(randomTarget, aimed, aim);
-        }
-        else aim = 0f;
-
-        s.target = a.ClampTarget(goal, target, t.targetInset, t.targetBehindLine);
 
         Vector3 toGoal = (s.target - s.pos).normalized;
-        Vector3 launch = awayNormal.normalized * 0.5f + toGoal * 0.9f + swingDir * aim;
-        if (Vector3.Dot(launch.normalized, forward) < 0.25f) launch += forward; // never back into your own goal
-        s.vel = launch.normalized * s.speed;
+        if (t.launchAssist > 0f) dir = Vector3.Lerp(dir, toGoal, t.launchAssist).normalized;
+
+        // small random spread
+        if (t.launchJitter > 0f)
+        {
+            Vector3 side = Vector3.Cross(Vector3.up, dir);
+            if (side.sqrMagnitude < 1e-6f) side = Vector3.right;
+            side.Normalize();
+            Vector3 up = Vector3.Cross(dir, side);
+            float j = t.launchJitter * Mathf.Deg2Rad;
+            dir = (dir + side * Mathf.Tan((rand1 - 0.5f) * 2f * j) + up * Mathf.Tan((rand2 - 0.5f) * 2f * j)).normalized;
+        }
+
+        // always some speed toward the other end, so it can't go back into your own goal or stall
+        float f = Vector3.Dot(dir, forward);
+        if (f < t.minForward)
+        {
+            Vector3 lateral = dir - forward * f;
+            float keep = Mathf.Sqrt(1f - t.minForward * t.minForward);
+            dir = lateral.sqrMagnitude > 1e-8f ? lateral.normalized * keep + forward * t.minForward : forward;
+        }
+        s.vel = dir.normalized * s.speed;
 
         s.targetSide = (byte)goal;
+        s.lastHitter = (byte)hitterSide;
         s.homeTimer = -t.homingDelay;
         s.flightTime = 0f;
         s.Mode = KeeperBallMode.Flying;
@@ -317,16 +383,20 @@ public static class KeeperBallSim
             pos = a.parkPoint,
             speed = t.baseSpeed,
             targetSide = (byte)side,
-            target = a.TargetPoint(side, r1, r2, t.targetInset, t.targetBehindLine),
+            target = GoalTarget(a, t, side),
+            lastHitter = KeeperBallState.NoHitter,
             homeTimer = 0f,
             flightTime = 0f,
             touches = 0,
             seq = seq,
             Mode = KeeperBallMode.Flying
         };
-        Vector3 to = (s.target - s.pos).normalized;
-        Quaternion swerve = Quaternion.Euler((r3 - 0.5f) * 24f, (r1 - 0.5f) * 70f, 0f);
-        s.vel = (swerve * to).normalized * s.speed;
+        // aimed a little off centre so it curves in; with no steering it still flies into the goal
+        Vector3 aimAt = a.TargetPoint(side, r1, r2, 0.12f, t.targetBehindLine);
+        Vector3 off = aimAt - s.target;
+        off.z = 0f;
+        off *= t.homingStrength > 0f ? Mathf.Lerp(1.2f, 2.2f, r3) : 0.6f;
+        s.vel = (s.target + off - s.pos).normalized * s.speed;
         return s;
     }
 
@@ -336,6 +406,7 @@ public static class KeeperBallSim
         vel = Vector3.zero,
         target = a.parkPoint,
         speed = t.baseSpeed,
+        lastHitter = KeeperBallState.NoHitter,
         seq = seq,
         Mode = KeeperBallMode.Parked
     };

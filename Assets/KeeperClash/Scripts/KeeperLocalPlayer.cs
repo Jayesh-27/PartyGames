@@ -38,7 +38,21 @@ public class KeeperLocalPlayer : MonoBehaviour
     public float bodyRadius = 0.17f;
     public bool bodyCounts = true;
 
+    [Header("Thumbstick movement")]
+    [Tooltip("Left stick walks you around, right stick turns")]
+    public bool allowMove = true;
+    [Tooltip("Walking speed, metres per second")]
+    public float moveSpeed = 2.5f;
+    [Tooltip("Right stick: snap turn by this many degrees (0 = smooth turn)")]
+    public float snapTurnDegrees = 45f;
+    public float smoothTurnSpeed = 120f;
+    [Tooltip("During a match you can walk this far out from your goal line")]
+    public float maxDistanceFromGoal = 4.5f;
+    [Tooltip("How far behind your goal line you can step (into the goal mouth)")]
+    public float behindGoalLine = 0.3f;
+
     [Header("Options")]
+    [Tooltip("Turns off the Meta teleport/turn locomotion; this script's thumbstick movement replaces it")]
     public bool disableLocomotion = true;
 
     public List<Probe> Probes => probes;
@@ -50,6 +64,7 @@ public class KeeperLocalPlayer : MonoBehaviour
     bool jumpedThisFrame;
     bool recenterHooked;
     float stopLeftAt, stopRightAt;
+    bool turnLatched;
 
     void Awake()
     {
@@ -114,6 +129,8 @@ public class KeeperLocalPlayer : MonoBehaviour
             }
         }
 
+        if (allowMove) Move(Time.deltaTime);
+
         UpdateLobbyCanvas();
         UpdateProbes(Time.deltaTime);
         jumpedThisFrame = false;
@@ -152,6 +169,67 @@ public class KeeperLocalPlayer : MonoBehaviour
 
         jumpedThisFrame = true;
         return true;
+    }
+
+    // ------------------------------------------------------------------ thumbstick movement
+
+    void Move(float dt)
+    {
+        if (rig == null || rig.centerEyeAnchor == null) return;
+        Transform root = rig.transform;
+        Transform head = rig.centerEyeAnchor;
+
+        // right stick: turn around your head
+        float turnX = OVRInput.Get(OVRInput.Axis2D.SecondaryThumbstick).x;
+        if (snapTurnDegrees > 0f)
+        {
+            if (!turnLatched && Mathf.Abs(turnX) > 0.75f)
+            {
+                turnLatched = true;
+                root.RotateAround(head.position, Vector3.up, Mathf.Sign(turnX) * snapTurnDegrees);
+                jumpedThisFrame = true;
+            }
+            else if (Mathf.Abs(turnX) < 0.35f) turnLatched = false;
+        }
+        else if (Mathf.Abs(turnX) > 0.2f)
+            root.RotateAround(head.position, Vector3.up, turnX * smoothTurnSpeed * dt);
+
+        // left stick: walk where you look (flat)
+        Vector2 stick = OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick);
+        if (stick.sqrMagnitude > 0.04f)
+        {
+            Vector3 fwd = Vector3.ProjectOnPlane(head.forward, Vector3.up);
+            if (fwd.sqrMagnitude < 1e-4f) fwd = Vector3.ProjectOnPlane(root.forward, Vector3.up);
+            fwd.Normalize();
+            Vector3 right = Vector3.Cross(Vector3.up, fwd);
+            Vector3 move = (fwd * stick.y + right * stick.x) * moveSpeed * dt;
+            root.position += new Vector3(move.x, 0f, move.z);
+        }
+
+        // keep your head inside the area you're allowed in (also catches walking in real life)
+        Vector3 h = head.position;
+        Vector3 clamped = ClampHead(h);
+        if ((clamped - h).sqrMagnitude > 1e-8f) root.position += new Vector3(clamped.x - h.x, 0f, clamped.z - h.z);
+    }
+
+    Vector3 ClampHead(Vector3 h)
+    {
+        KeeperArenaSpec a = KeeperArena.Spec;
+        float margin = 0.3f;
+        h.x = Mathf.Clamp(h.x, -a.HalfWidth + margin, a.HalfWidth - margin);
+
+        if (placedSide == 0 || placedSide == 1)
+        {
+            float sign = KeeperArenaSpec.Sign(placedSide);
+            float depth = h.z * sign; // distance toward your own end
+            float minDepth = a.HalfLength - Mathf.Max(0.5f, maxDistanceFromGoal);
+            float maxDepth = a.HalfLength + Mathf.Clamp(behindGoalLine, 0f, a.goalDepth - margin);
+            depth = Mathf.Clamp(depth, minDepth, maxDepth);
+            if (depth > a.HalfLength - margin) h.x = Mathf.Clamp(h.x, -a.goalWidth * 0.5f + margin, a.goalWidth * 0.5f - margin);
+            h.z = depth * sign;
+        }
+        else h.z = Mathf.Clamp(h.z, -a.HalfLength + margin, a.HalfLength - margin);
+        return h;
     }
 
     void UpdateLobbyCanvas()

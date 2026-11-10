@@ -80,8 +80,9 @@ public class KeeperBot : MonoBehaviour
         if (reached && (bp - body.position).magnitude < reach + a.ballRadius)
         {
             Vector3 away = (bp - body.position).sqrMagnitude > 1e-4f ? (bp - body.position).normalized : a.Forward(Side);
-            // swing at a random spot so practice shots vary
-            Vector3 swing = (a.Forward(Side) * 3f + new Vector3(Random.Range(-1.5f, 1.5f), Random.Range(-0.5f, 0.8f), 0f)) + vel * 0.2f;
+            // swing at a random spot around the other goal (sometimes a bit wide) so practice shots vary
+            Vector3 aimAt = a.TargetPoint(1 - Side, Random.Range(-0.15f, 1.15f), Random.Range(0.1f, 0.9f), 0.12f, 0f);
+            Vector3 swing = (aimAt - bp).normalized * 3.5f + vel * 0.1f;
             ball.ServerBotTouch(away, swing);
             hasDecision = false;
         }
