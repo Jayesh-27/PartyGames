@@ -162,9 +162,12 @@ public static class LobbyBuilder
 
         RectTransform results = Card(room, "Results", M, 462f, W - M * 2f, 140f, Deep, 30f);
         ui.resultsCard = results.gameObject;
-        ui.resultsTitle = Label(results, "Title", 32f, 14f, 680f, 64f, "BLUE WINS THE PARTY!", 48f, Color.white, TitleFont, TextAlignmentOptions.Left);
-        ui.resultsWins = Label(results, "Wins", 34f, 82f, 680f, 40f, "Parties won    1  -  0", 26f, PartyTeam.Soft, BodyFont, TextAlignmentOptions.Left);
-        ui.resultsScore = Label(results, "Score", 700f, 10f, 360f, 120f, "320 : 250", 92f, Color.white, TitleFont, TextAlignmentOptions.Right);
+        ui.resultsTitle = Label(results, "Title", 32f, 14f, 620f, 64f, "BLUE WINS THE PARTY!", 48f, Color.white, TitleFont, TextAlignmentOptions.Left, true);
+        ui.resultsWins = Label(results, "Wins", 34f, 82f, 620f, 40f, "Parties won    1  -  0", 26f, PartyTeam.Soft, BodyFont, TextAlignmentOptions.Left, true);
+        // one line that shrinks to fit, so big totals never spill out of the card
+        ui.resultsScore = Label(results, "Score", 660f, 14f, 396f, 112f, "1320  :  1250", 92f, Color.white, TitleFont, TextAlignmentOptions.Right, true);
+        foreach (TMP_Text t in new[] { ui.resultsTitle, ui.resultsWins, ui.resultsScore }) t.textWrappingMode = TextWrappingModes.NoWrap;
+        ui.resultsScore.overflowMode = TextOverflowModes.Truncate;
 
         ui.leaveButton = Btn(room, "Leave", M, 640f, 220f, 80f, "LEAVE", PartyTeam.CardLight, Color.white, 34f);
         ui.startButton = Btn(room, "Start", W - M - 470f, 626f, 470f, 100f, "START GAME", PartyTeam.Gold, PartyTeam.Ink, 50f, out TextMeshProUGUI startLabel);
