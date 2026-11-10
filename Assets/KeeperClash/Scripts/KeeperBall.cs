@@ -54,6 +54,7 @@ public class KeeperBall : NetworkBehaviour
         state = KeeperBallSim.Parked(Arena, tuning, 0);
         lastCheckPos = state.pos;
         if (heatColors == null || heatColors.colorKeys.Length < 2) heatColors = DefaultHeatColors();
+        if (hum != null && hum.clip == null) hum.clip = KeeperSfx.Hum;
     }
 
     public override void OnDestroy()
